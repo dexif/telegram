@@ -5,9 +5,19 @@ use Illuminate\Database\Schema\Builder;
 
 return [
     'up' => function (Builder $schema) {
-        $schema->table('users', function (Blueprint $table) {
-            $table->bigInteger('flagrow_telegram_id')->nullable()->unique();
-            $table->string('flagrow_telegram_error', 50)->nullable();
+        // The columns may already exist when migrating from another fork of this
+        // extension (e.g. nodeloc/telegram), whose migrations ran under a different extension ID.
+        $hasId = $schema->hasColumn('users', 'flagrow_telegram_id');
+        $hasError = $schema->hasColumn('users', 'flagrow_telegram_error');
+
+        $schema->table('users', function (Blueprint $table) use ($hasId, $hasError) {
+            if (! $hasId) {
+                $table->bigInteger('flagrow_telegram_id')->nullable()->unique();
+            }
+
+            if (! $hasError) {
+                $table->string('flagrow_telegram_error', 50)->nullable();
+            }
         });
     },
     'down' => function (Builder $schema) {

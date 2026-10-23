@@ -1,162 +1,113 @@
 <?php
 
-namespace Nodeloc\Telegram\Notifications;
-use Exception;
+namespace FlarumTelegram\Notifications;
+
+use Flarum\Http\UrlGenerator;
+use Flarum\Locale\TranslatorInterface;
 use Flarum\Notification\Blueprint\BlueprintInterface;
 use Flarum\Notification\MailableInterface;
 use Flarum\Settings\SettingsRepositoryInterface;
-use Flarum\User\LoginProvider;
 use Flarum\User\User;
-use Illuminate\Contracts\View\Factory;
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use Illuminate\Contracts\Mail\Mailer;
-use Illuminate\Contracts\Translation\Translator;
-use Nodeloc\Telegram\Listeners\AddUserAttributes;
-use Symfony\Contracts\Translation\TranslatorInterface;
-use Telegram\Bot\Api;
-use Telegram\Bot\Exceptions\TelegramSDKException;
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 class TelegramMailer
 {
     /**
-     * @var Mailer
+     * Telegram's limit for a single message.
      */
-    protected $mailer;
+    protected const MAX_LENGTH = 4096;
 
-    /**
-     * @var TranslatorInterface&Translator
-     */
-    protected $translator;
+    public function __construct(
+        protected TranslatorInterface $translator,
+        protected SettingsRepositoryInterface $settings,
+        protected UrlGenerator $url,
+        protected Factory $view,
+        protected LoggerInterface $logger
+    ) {
+    }
 
-    /**
-     * @var SettingsRepositoryInterface
-     */
-    protected $settings;
-
-    protected $view;
-
-    protected  $telegramclient;
-
-    /**
-     * @param TranslatorInterface&Translator $translator
-     * @throws TelegramSDKException
-     */
-    public function __construct(Mailer $mailer, TranslatorInterface $translator, SettingsRepositoryInterface $settings,Factory $view)
+    public function send(MailableInterface&BlueprintInterface $blueprint, User $user): void
     {
-        $this->mailer = $mailer;
-        $this->translator = $translator;
-        $token = $settings->get('nodeloc-telegram.botToken');
+        $token = $this->settings->get('dexif-telegram.botToken');
+        $chatId = $user->loginProviders()->where('provider', 'telegram')->value('identifier');
 
-        if (!$token) {
-            throw new Exception('No bot token configured for TelegramProvide');
+        if (! $token || ! $chatId) {
+            return;
         }
-        $this->telegramclient =  new Api($token);
-        $this->settings = $settings;
-        $this->view = $view;
-    }
-    /**
-     * @param User $actor
-     * @return int
-     */
-    protected function getTelegramId(User $actor)
-    {
-        $query = LoginProvider::where('user_id', '=', $actor->id);
-        $query->where('provider', '=', 'telegram');
-        $provider = $query->first();
-        return $provider->identifier;
-    }
-    public function send(BlueprintInterface $blueprint, array $users): void
-    {
-        foreach ($users as $user) {
-            if ($blueprint instanceof MailableInterface) {
-                $view = $this->pickBestView($blueprint->getEmailView());
-                $text = $this->view->make($view, compact('blueprint', 'user'))->render();
-            }else if ($blueprint instanceof BlueprintInterface) {
-                return;
-            }else{
-                throw new Exception('Notification not compatible with Telegram Mailer');
-            }
-            $telegram_id = $user->flagrow_telegram_id; // Assuming 'telegram_id' is the key for the user's Telegram ID in the array
-            if(!$telegram_id){
-                $telegram_id = $this->getTelegramId($user);
-                if($telegram_id){
-                    $user->flagrow_telegram_id = $telegram_id;
-                    $user->save();
-                }else{
-                    $user->flagrow_telegram_error = 'User telegram id is incorrect.';
-                    $user->save();
-                    return;
-                }
-            }
-            try {
-                $this->telegramclient->sendMessage([
-                    'chat_id' => $telegram_id,
-                    'text' => $text
-                ]);
 
-                // Reset error if everything went right
-                if ($user->flagrow_telegram_error) {
-                    $user->flagrow_telegram_error = null;
-                    $user->save();
-                }
-            } catch (ClientException $exception) {
-                $response = $exception->getResponse();
-                if ($response && $response->getStatusCode() !== 403) {
-                    throw $exception;
-                }
-                $user->flagrow_telegram_error = 'unauthorized';
-                $json = json_decode($response->getBody()->getContents(), true);
+        try {
+            (new Client(['timeout' => 10]))->post("https://api.telegram.org/bot$token/sendMessage", [
+                'json' => [
+                    'chat_id' => $chatId,
+                    'text' => Str::limit($this->render($blueprint, $user), self::MAX_LENGTH - 3),
+                    'link_preview_options' => ['is_disabled' => true],
+                ],
+            ]);
+        } catch (ClientException $exception) {
+            $status = $exception->getResponse()->getStatusCode();
 
-                if ($json && str_contains(Arr::get($json, 'description', ''), 'blocked by the user')) {
-                    $user->flagrow_telegram_error = 'blocked';
-                }
+            // 400 (chat not found) and 403 (blocked / never started) are on the user's side.
+            if ($status === 400 || $status === 403) {
+                $description = Arr::get(json_decode((string) $exception->getResponse()->getBody(), true) ?: [], 'description', '');
 
+                $user->flagrow_telegram_error = str_contains($description, 'blocked by the user') ? 'blocked' : 'unauthorized';
                 $user->save();
-            } catch (TelegramSDKException $exception) {
-                $user->flagrow_telegram_error = 'unauthorized';
-                $user->save();
+            } else {
+                $this->logger->warning("Telegram notification failed: Telegram API responded with status $status");
             }
+
+            return;
+        } catch (Throwable $exception) {
+            // Never let Telegram break the request that triggered the notification (the default
+            // queue is synchronous). Guzzle messages contain the request URL with the bot token,
+            // so only the class is logged for them.
+            $message = $exception instanceof GuzzleException ? get_class($exception) : $exception->getMessage();
+            $this->logger->warning("Telegram notification failed: $message");
+
+            return;
+        }
+
+        if ($user->flagrow_telegram_error) {
+            $user->flagrow_telegram_error = null;
+            $user->save();
         }
     }
 
     /**
-     * Read the same way as Illuminate\Mail\Mailer::parseView()
-     * @param $view
-     * @return string
-     * @throws Exception
+     * Renders the notification's plain-text email view, with the same view data
+     * as Flarum\Notification\NotificationMailer.
      */
-    protected function pickBestView($view)
+    protected function render(MailableInterface&BlueprintInterface $blueprint, User $user): string
     {
-        if (is_string($view)) {
-            return $view;
-        }
+        $this->translator->setLocale($user->getPreference('locale') ?? $this->settings->get('default_locale'));
 
-        if (is_array($view)) {
-            if (isset($view[0])) {
-                return $view[0];
-            }
+        $settingsLink = $this->url->to('forum')->route('settings');
 
-            $html = Arr::get($view, 'html');
+        $data = [
+            'blueprint' => $blueprint,
+            'user' => $user,
+            // There is no per-type unsubscribe for Telegram, point to the notification settings instead.
+            'unsubscribeLink' => $settingsLink,
+            'settingsLink' => $settingsLink,
+            'type' => $blueprint::getType(),
+            'forumTitle' => $this->settings->get('forum_title'),
+            'username' => $user->display_name,
+            'userEmail' => $user->email,
+            'title' => $blueprint->getEmailSubject($this->translator),
+        ];
 
-            if ($html) {
-                return $html;
-            }
+        // Mail components read these from shared data, not from the parent view.
+        $this->view->share($data);
 
-            $text = Arr::get($view, 'text');
+        $text = $this->view->make($blueprint->getEmailViews()['text'], $data)->render();
 
-            if ($text) {
-                return $text;
-            }
-
-            $raw = Arr::get($view, 'raw');
-
-            if ($raw) {
-                return $raw;
-            }
-        }
-
-        throw new Exception('No view found for that mailable');
+        return trim(preg_replace("/\n{3,}/", "\n\n", $text));
     }
-
 }

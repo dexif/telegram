@@ -1,32 +1,49 @@
 <?php
 
-namespace Nodeloc\Telegram;
-use Flarum\Api\Serializer\UserSerializer;
+namespace FlarumTelegram;
+
+use Flarum\Api\Context;
+use Flarum\Api\Resource\UserResource;
+use Flarum\Api\Schema;
 use Flarum\Extend;
-use Nodeloc\Telegram\Controllers\TelegramAuthController;
-use Nodeloc\Telegram\Driver\TelegramNotificationDriver;
-use Nodeloc\Telegram\Listeners\AddUserAttributes;
-use Nodeloc\Telegram\Provider\TelegramNotificationServiceProvider;
+use Flarum\User\User;
+use FlarumTelegram\Controllers\LinkTelegramController;
+use FlarumTelegram\Controllers\TelegramAuthController;
+use FlarumTelegram\Driver\TelegramNotificationDriver;
+
+$isSelf = fn (User $user, Context $context) => $context->getActor()->id === $user->id;
 
 return [
     (new Extend\Frontend('forum'))
         ->js(__DIR__.'/js/dist/forum.js')
         ->css(__DIR__.'/resources/less/forum.less'),
-    (new Extend\Locales(__DIR__ . '/resources/locale')),
-    (new Extend\Event)
-        ->subscribe(Driver\TelegramNotificationDriver::class)
-        ->subscribe(Listeners\InjectSettings::class),
-    (new Extend\ApiSerializer(UserSerializer::class))->attributes(AddUserAttributes::class),
-    (new Extend\Notification())
-        ->driver('telegram', TelegramNotificationDriver::class),
-    (new Extend\Settings)
-        ->serializeToForum('nodeloc-telegram.botUsername', 'nodeloc-telegram.botUsername', )
-        ->serializeToForum('nodeloc-telegram.botToken', 'nodeloc-telegram.botToken', )
-        ->serializeToForum('nodeloc-telegram.enableNotifications', 'nodeloc-telegram.enableNotifications', 'boolval'),
+
     (new Extend\Frontend('admin'))
         ->js(__DIR__.'/js/dist/admin.js'),
+
+    new Extend\Locales(__DIR__.'/resources/locale'),
+
     (new Extend\Routes('forum'))
         ->get('/auth/telegram', 'auth.telegram', TelegramAuthController::class),
+
+    (new Extend\Routes('api'))
+        ->post('/telegram/link', 'telegram.link', LinkTelegramController::class),
+
+    (new Extend\Notification())
+        ->driver('telegram', TelegramNotificationDriver::class),
+
+    (new Extend\ApiResource(UserResource::class))
+        ->fields(fn () => [
+            Schema\Boolean::make('canReceiveTelegramNotifications')
+                ->visible($isSelf)
+                ->get(fn (User $user) => $user->loginProviders()->where('provider', 'telegram')->exists()),
+            Schema\Str::make('telegramError')
+                ->visible($isSelf)
+                ->nullable()
+                ->get(fn (User $user) => $user->flagrow_telegram_error),
+        ]),
+
+    (new Extend\Settings())
+        ->serializeToForum('dexif-telegram.botUsername', 'dexif-telegram.botUsername')
+        ->serializeToForum('dexif-telegram.enableNotifications', 'dexif-telegram.enableNotifications', 'boolval'),
 ];
-
-

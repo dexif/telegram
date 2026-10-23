@@ -1,10 +1,9 @@
 {
-    "name": "nodeloc/telegram",
+    "name": "dexif/telegram",
     "description": "Telegram login and notifications for Flarum",
     "keywords": [
         "extension",
         "flarum",
-        "nodeloc",
         "telegram",
         "auth",
         "notifications"
@@ -13,18 +12,29 @@
     "license": "MIT",
     "authors": [
         {
+            "name": "Evgenij Spitsyn",
+            "email": "evgeniy@spitsyn.net",
+            "homepage": "https://spitsyn.net/"
+        },
+        {
+            "name": "Clark Winkelmann",
+            "email": "clark.winkelmann@gmail.com",
+            "homepage": "https://clarkwinkelmann.com/"
+        },
+        {
             "name": "JameSupeReal",
             "email": "james@nodeloc.com",
             "homepage": "https://www.nodeloc.com/"
         }
     ],
     "support": {
-        "issues": "https://github.com/nodeloc/telegram/issues",
-        "source": "https://github.com/nodeloc/telegram"
+        "issues": "https://github.com/dexif/telegram/issues",
+        "source": "https://github.com/dexif/telegram"
     },
     "require": {
-        "flarum/core": "^1.8.0",
-        "irazasyed/telegram-bot-sdk": "^3.9"},
+        "php": "^8.3",
+        "flarum/core": "^2.0"
+    },
     "extra": {
         "flarum-extension": {
             "title": "Telegram",
@@ -32,15 +42,13 @@
                 "name": "fab fa-telegram-plane",
                 "backgroundColor": "#f4f4f4",
                 "color": "#5f4bb6"
-            }
-        },
-        "nodeloc": {
-            "discuss": "https://www.nodeloc.com"
+            },
+            "category": "feature"
         }
     },
     "autoload": {
         "psr-4": {
-            "Nodeloc\\Telegram\\": "src/"
+            "FlarumTelegram\\": "src/"
         }
     }
 }

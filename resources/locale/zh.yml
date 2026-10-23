@@ -1,7 +1,7 @@
-nodeloc-telegram:
+dexif-telegram:
     admin:
         settings:
-            title: TelegramProvide Settings
+            title: Telegram Settings
 
             field:
                 botUsername: Bot Username
@@ -14,4 +14,5 @@ nodeloc-telegram:
 
         settings:
             notify_by_telegram_heading: Telegram
-            unblock_telegram_bot: It seems like you did not authorize or blocked the TelegramProvide bot. Send a message to <a>{username}</a> on TelegramProvide to re-enable notifications
+            unblock_telegram_bot: It seems like you did not authorize or blocked the Telegram bot. Send a message to <a>{username}</a> on Telegram to re-enable notifications
+            linked_message: 已关联 Telegram 账号。

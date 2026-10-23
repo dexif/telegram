@@ -1,6 +1,8 @@
-# Telegram login and notifications by Nodeloc (rewritten original extension of [Flagrow](https://discuss.flarum.org/d/1832-flagrow-extension-developer-group))
+# Telegram login and notifications for Flarum
 
-[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nodeloc/telegram/blob/master/LICENSE.md) [![Latest Stable Version](https://img.shields.io/packagist/v/nodeloc/telegram.svg)](https://packagist.org/packages/nodeloc/telegram) [![Total Downloads](https://img.shields.io/packagist/dt/nodeloc/telegram.svg)](https://packagist.org/packages/nodeloc/telegram)
+Based on the original extension by [Flagrow](https://discuss.flarum.org/d/1832-flagrow-extension-developer-group), with improvements from [Nodeloc](https://github.com/nodeloc/telegram).
+
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dexif/telegram/blob/master/LICENSE.md) [![Latest Stable Version](https://img.shields.io/packagist/v/dexif/telegram.svg)](https://packagist.org/packages/dexif/telegram) [![Total Downloads](https://img.shields.io/packagist/dt/dexif/telegram.svg)](https://packagist.org/packages/dexif/telegram)
 
 This extension adds a "Log in with Telegram" button that uses the new [Telegram Login widget](https://telegram.org/blog/login) and add an option to receive notifications via Telegram as well.
 
@@ -11,16 +13,30 @@ This extension adds a "Log in with Telegram" button that uses the new [Telegram 
 <img width="473" alt="11" src="https://github.com/nodeloc/telegram/assets/149086144/10ea6339-93f8-4adf-8264-0a4fd2310319">
 
 
+## Requirements
+
+- Flarum 2.0+
+- PHP 8.3+
+
 ## Installation
 
 ```bash
-composer require nodeloc/telegram
+composer require dexif/telegram
 ```
 
 ## Updating
 
+If you are migrating from `nodeloc/telegram`, replace the package (the extension ID changes to `dexif-telegram`, so re-enter the bot settings and enable the extension again):
+
 ```bash
-composer update nodeloc/telegram
+composer remove nodeloc/telegram
+composer require dexif/telegram
+```
+
+Otherwise:
+
+```bash
+composer update dexif/telegram
 php flarum migrate
 php flarum cache:clear
 ```
@@ -31,7 +47,11 @@ Follow [Telegram instructions](https://core.telegram.org/widgets/login#setting-u
 
 Then copy the **Bot Username** and **Bot Token** to the extension settings. The username and token must belong to the same bot.
 
-If you check **Enable Notifications**, the login widget will ask for permission for the bot to message the user and an additional Telegram column will appear in the user's notification settings.
+Don't forget to bind your forum domain to the bot with the `/setdomain` command in [@BotFather](https://t.me/BotFather), otherwise the widget will show "Bot domain invalid".
+
+Existing users can link their Telegram account on the **Settings** page.
+
+If you check **Enable Notifications**, the login widget will ask for permission for the bot to message the user and an additional Telegram column will appear in the user's notification settings. Notifications are sent through the queue and use the plain-text version of the notification e-mail.
 
 ## Support our work
 
@@ -45,8 +65,7 @@ Please include as many details as possible. You can use `php flarum info` to get
 
 ## Links
 
-- [Flarum Discuss post](https://www.nodeloc.com)
-- [Source code on GitHub](https://github.com/nodeloc/telegram)
-- [Report an issue](https://github.com/nodeloc/telegram/issues)
-- [Download via Packagist](https://packagist.org/packages/nodeloc/telegram)
+- [Source code on GitHub](https://github.com/dexif/telegram)
+- [Report an issue](https://github.com/dexif/telegram/issues)
+- [Download via Packagist](https://packagist.org/packages/dexif/telegram)
 

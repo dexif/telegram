@@ -1,65 +1,52 @@
 <?php
 
-namespace Nodeloc\Telegram\Driver;
+namespace FlarumTelegram\Driver;
 
+use Flarum\Notification\Blueprint\BlueprintInterface;
 use Flarum\Notification\Driver\NotificationDriverInterface;
 use Flarum\Notification\MailableInterface;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
+use FlarumTelegram\Job\SendTelegramNotificationJob;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Queue\Queue;
-use Nodeloc\Telegram\Job\SendTelegramNotificationJob;
-use Flarum\Notification\Blueprint\BlueprintInterface;
 use ReflectionClass;
 
 class TelegramNotificationDriver implements NotificationDriverInterface
 {
-    /**
-     * @var Queue
-     */
-    protected $queue;
-
-    public function __construct(Queue $queue)
-    {
-        $this->queue = $queue;
+    public function __construct(
+        protected Container $container,
+        protected SettingsRepositoryInterface $settings
+    ) {
     }
 
-    public function subscribe($events)
-    {
-        $events->listen(Sending::class, [$this, 'send']);
-    }
-
-    /**
-     * {@inheritDoc}
-     * @throws \Exception
-     */
     public function send(BlueprintInterface $blueprint, array $users): void
     {
-        if (count($users)) {
-            $this->queue->push(new SendTelegramNotificationJob($blueprint, $users));
+        // Telegram messages are rendered from the notification's plain-text email view.
+        if (! $blueprint instanceof MailableInterface) {
+            return;
         }
-    }
 
-
-    protected function shouldSendTelegramToUser($blueprint, $user)
-    {
-        if (!$user->getPreference(User::getNotificationPreferenceKey($blueprint::getType(), 'telegram'))) {
-            return false;
+        if (! $this->settings->get('dexif-telegram.enableNotifications') || ! $this->settings->get('dexif-telegram.botToken')) {
+            return;
         }
-        return $this->getTelegramId($user);
-    }
 
-    protected function getTelegramId($actor)
-    {
-        $provider = $actor->LoginProviders()->where('provider', '=', 'telegram')->first();
-        return $provider->identifier;
+        // Resolved at push time, see Flarum\Notification\Driver\EmailNotificationDriver.
+        $queue = $this->container->make(Queue::class);
+
+        foreach ($users as $user) {
+            if ($user->getPreference(User::getNotificationPreferenceKey($blueprint::getType(), 'telegram'))) {
+                $queue->push(new SendTelegramNotificationJob($blueprint, $user));
+            }
+        }
     }
 
     public function registerType(string $blueprintClass, array $driversEnabledByDefault): void
     {
         if ((new ReflectionClass($blueprintClass))->implementsInterface(MailableInterface::class)) {
-
             User::registerPreference(
                 User::getNotificationPreferenceKey($blueprintClass::getType(), 'telegram'),
-                'boolval',
+                boolval(...),
                 in_array('telegram', $driversEnabledByDefault)
             );
         }
