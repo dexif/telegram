@@ -24,10 +24,10 @@ return [
     new Extend\Locales(__DIR__.'/resources/locale'),
 
     (new Extend\Routes('forum'))
-        ->get('/auth/telegram', 'auth.telegram', TelegramAuthController::class),
+        ->get('/telegram/auth', 'dexif-telegram.auth', TelegramAuthController::class),
 
     (new Extend\Routes('api'))
-        ->post('/telegram/link', 'telegram.link', LinkTelegramController::class),
+        ->post('/telegram/link', 'dexif-telegram.link', LinkTelegramController::class),
 
     (new Extend\Notification())
         ->driver('telegram', TelegramNotificationDriver::class),

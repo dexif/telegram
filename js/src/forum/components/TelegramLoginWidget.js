@@ -9,7 +9,7 @@ import app from 'flarum/forum/app';
  * ### Attrs
  *
  * - `onauth` callback receiving the signed user data. Without it the widget
- *   redirects the browser to /auth/telegram (log in / sign up).
+ *   redirects the browser to /telegram/auth (log in / sign up).
  */
 export default class TelegramLoginWidget extends Component {
   view() {
@@ -35,7 +35,7 @@ export default class TelegramLoginWidget extends Component {
       window.flarumTelegramOnAuth = this.attrs.onauth;
       script.setAttribute('data-onauth', 'flarumTelegramOnAuth(user)');
     } else {
-      script.setAttribute('data-auth-url', app.forum.attribute('baseUrl') + '/auth/telegram');
+      script.setAttribute('data-auth-url', app.forum.attribute('baseUrl') + '/telegram/auth');
     }
 
     this.element.appendChild(script);
