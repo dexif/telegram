@@ -1,8 +1,6 @@
 import app from 'flarum/forum/app';
 import { extend } from 'flarum/common/extend';
 import LogInButtons from 'flarum/forum/components/LogInButtons';
-import NotificationGrid from 'flarum/forum/components/NotificationGrid';
-import SettingsPage from 'flarum/forum/components/SettingsPage';
 import Alert from 'flarum/common/components/Alert';
 import TelegramLoginWidget from './components/TelegramLoginWidget';
 
@@ -18,7 +16,8 @@ app.initializers.add('dexif-telegram', () => {
     }
   });
 
-  extend(NotificationGrid.prototype, 'notificationMethods', function (items) {
+  // SettingsPage and NotificationGrid are lazy loaded, so they are extended by module path.
+  extend('flarum/forum/components/NotificationGrid', 'notificationMethods', function (items) {
     const user = app.session.user;
 
     if (!notificationsEnabled() || !user || !user.canReceiveTelegramNotifications()) return;
@@ -30,7 +29,7 @@ app.initializers.add('dexif-telegram', () => {
     });
   });
 
-  extend(SettingsPage.prototype, 'accountItems', function (items) {
+  extend('flarum/forum/components/SettingsPage', 'accountItems', function (items) {
     const user = app.session.user;
 
     if (!botUsername() || !user || user.canReceiveTelegramNotifications()) return;
@@ -51,7 +50,7 @@ app.initializers.add('dexif-telegram', () => {
     items.add('dexif-telegram', <TelegramLoginWidget onauth={link} />);
   });
 
-  extend(SettingsPage.prototype, 'notificationsItems', function (items) {
+  extend('flarum/forum/components/SettingsPage', 'notificationsItems', function (items) {
     const user = app.session.user;
 
     if (!notificationsEnabled() || !user || !user.telegramError()) return;
