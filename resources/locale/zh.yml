@@ -16,3 +16,9 @@ dexif-telegram:
             notify_by_telegram_heading: Telegram
             unblock_telegram_bot: It seems like you did not authorize or blocked the Telegram bot. Send a message to <a>{username}</a> on Telegram to re-enable notifications
             linked_message: 已关联 Telegram 账号。
+
+# Title of Telegram links on the FoF OAuth security page.
+fof-oauth:
+    forum:
+        providers:
+            telegram: Telegram

@@ -16,3 +16,9 @@ dexif-telegram:
             notify_by_telegram_heading: Telegram
             unblock_telegram_bot: Похоже вы не авторизовали или заблокировали бота. Отправьте сообщение <a>{username}</a> в телеграме для включения уведомлений
             linked_message: Аккаунт Telegram привязан.
+
+# Title of Telegram links on the FoF OAuth security page.
+fof-oauth:
+    forum:
+        providers:
+            telegram: Telegram

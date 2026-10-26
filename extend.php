@@ -10,6 +10,7 @@ use Flarum\User\User;
 use FlarumTelegram\Controllers\LinkTelegramController;
 use FlarumTelegram\Controllers\TelegramAuthController;
 use FlarumTelegram\Driver\TelegramNotificationDriver;
+use FoF\OAuth\Api\Resource\ProviderResource;
 
 $isSelf = fn (User $user, Context $context) => $context->getActor()->id === $user->id;
 
@@ -46,4 +47,17 @@ return [
     (new Extend\Settings())
         ->serializeToForum('dexif-telegram.botUsername', 'dexif-telegram.botUsername')
         ->serializeToForum('dexif-telegram.enableNotifications', 'dexif-telegram.enableNotifications', 'boolval'),
+
+    // FoF OAuth lists every login provider on the security page and marks the
+    // ones it doesn't know as orphaned. Telegram links belong to this extension.
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('fof-oauth', fn () => [
+            (new Extend\ApiResource(ProviderResource::class))
+                ->field('icon', fn (Schema\Str $field) => $field->serialize(
+                    fn ($value, Context $context) => $context->model->provider === 'telegram' ? 'fab fa-telegram-plane' : $value
+                ))
+                ->field('orphaned', fn (Schema\Boolean $field) => $field->serialize(
+                    fn ($value, Context $context) => $context->model->provider === 'telegram' ? false : $value
+                )),
+        ]),
 ];
