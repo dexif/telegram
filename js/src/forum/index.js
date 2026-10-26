@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import { extend } from 'flarum/common/extend';
 import LogInButtons from 'flarum/forum/components/LogInButtons';
 import Alert from 'flarum/common/components/Alert';
+import FieldSet from 'flarum/common/components/FieldSet';
 import TelegramLoginWidget from './components/TelegramLoginWidget';
 
 export { default as extend } from './extend';
@@ -29,10 +30,11 @@ app.initializers.add('dexif-telegram', () => {
     });
   });
 
-  extend('flarum/forum/components/SettingsPage', 'accountItems', function (items) {
+  // Linking lives on the security page next to the FoF OAuth linked accounts.
+  extend('flarum/forum/components/UserSecurityPage', 'settingsItems', function (items) {
     const user = app.session.user;
 
-    if (!botUsername() || !user || user.canReceiveTelegramNotifications()) return;
+    if (!botUsername() || !user || this.user !== user || user.canReceiveTelegramNotifications()) return;
 
     const link = (data) =>
       app
@@ -44,10 +46,22 @@ app.initializers.add('dexif-telegram', () => {
         .then(() => {
           user.pushAttributes({ canReceiveTelegramNotifications: true, telegramError: null });
           app.alerts.show({ type: 'success' }, app.translator.trans('dexif-telegram.forum.settings.linked_message'));
+
+          // Refresh the FoF OAuth list so the new link shows up there.
+          if (app.store.models['linked-accounts']) {
+            app.store.find('linked-accounts', { filter: { userId: user.id() } }).then(() => m.redraw());
+          }
+
           m.redraw();
         });
 
-    items.add('dexif-telegram', <TelegramLoginWidget onauth={link} />);
+    items.add(
+      'dexif-telegram',
+      <FieldSet className="UserSecurityPage-telegram" label={app.translator.trans('dexif-telegram.forum.link_telegram_button')}>
+        <TelegramLoginWidget onauth={link} />
+      </FieldSet>,
+      4
+    );
   });
 
   extend('flarum/forum/components/SettingsPage', 'notificationsItems', function (items) {

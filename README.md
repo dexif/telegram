@@ -49,7 +49,7 @@ Then copy the **Bot Username** and **Bot Token** to the extension settings. The 
 
 Don't forget to bind your forum domain to the bot with the `/setdomain` command in [@BotFather](https://t.me/BotFather), otherwise the widget will show "Bot domain invalid".
 
-Existing users can link their Telegram account on the **Settings** page.
+Existing users can link their Telegram account on the **Security** page of their profile.
 
 If you check **Enable Notifications**, the login widget will ask for permission for the bot to message the user and an additional Telegram column will appear in the user's notification settings. Notifications are sent through the queue and use the plain-text version of the notification e-mail.
 
