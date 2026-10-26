@@ -51,7 +51,7 @@ Don't forget to bind your forum domain to the bot with the `/setdomain` command 
 
 Existing users can link their Telegram account on the **Security** page of their profile.
 
-If you check **Enable Notifications**, the login widget will ask for permission for the bot to message the user and an additional Telegram column will appear in the user's notification settings. Notifications are sent through the queue and use the plain-text version of the notification e-mail.
+If you check **Enable Notifications**, the login widget will ask for permission for the bot to message the user and an additional Telegram column will appear in the user's notification settings. Notifications are sent through the queue. Notifications about a post contain the formatted post with a link to it, others use the plain-text version of the notification e-mail.
 
 ## Support our work
 
